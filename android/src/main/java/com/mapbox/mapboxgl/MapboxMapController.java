@@ -879,13 +879,19 @@ final class MapboxMapController
         break;
       }
       case "locationComponent#setCurrentLocation": {
-        final double lat = Double.parseDouble(call.argument("lat"));
-        final double lon = Double.parseDouble(call.argument("lon"));
+        final Double lat = call.argument("lat");
+        final Double lon = call.argument("lon");
 
-        if (locationEngine instanceof CurrentLocationEngine) {
-          ((CurrentLocationEngine) locationEngine).setLocation(lat, lon);
+
+        if (lat != null && lon != null) {
+          Location location = new Location("CurrentLocationEngine");
+          location.setLatitude(lat);
+          location.setLatitude(lat);
+          location.setLongitude(lon);
+          location.setLongitude(lon);
+          locationComponent.setLocationEngine(null);
+          locationComponent.forceLocationUpdate(location);
         }
-
         break;
       }
       default:
