@@ -378,7 +378,7 @@ final class MapboxMapController
       locationEngine = LocationEngineProvider.getBestLocationEngine(context);
       LocationComponentOptions locationComponentOptions = LocationComponentOptions.builder(context)
               .trackingGesturesManagement(true)
-              .foregroundDrawable(R.drawable.location_icon)
+              .gpsDrawable(R.drawable.location_icon)
               .build();
       locationComponent = mapboxMap.getLocationComponent();
       locationComponent.activateLocationComponent(context, style, locationComponentOptions);
