@@ -85,19 +85,15 @@ packages:
     dependency: "direct main"
     description:
       path: mapbox_gl_platform_interface
-      ref: HEAD
-      resolved-ref: "912463ec662e478ccf294dace751d2454687f062"
-      url: "https://github.com/tobrun/flutter-mapbox-gl.git"
-    source: git
+      relative: true
+    source: path
     version: "0.9.0"
   mapbox_gl_web:
     dependency: "direct main"
     description:
       path: mapbox_gl_web
-      ref: HEAD
-      resolved-ref: "912463ec662e478ccf294dace751d2454687f062"
-      url: "https://github.com/tobrun/flutter-mapbox-gl.git"
-    source: git
+      relative: true
+    source: path
     version: "0.9.0"
   meta:
     dependency: transitive
