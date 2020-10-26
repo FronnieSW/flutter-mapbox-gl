@@ -80,14 +80,15 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
         final dynamic userLocation = call.arguments['userLocation'];
         if (onUserLocationUpdatedPlatform != null) {
           onUserLocationUpdatedPlatform(UserLocation(
-              position: LatLng(userLocation['position'][0], userLocation['position'][1]),
+              position: LatLng(
+                  userLocation['position'][0], userLocation['position'][1]),
               altitude: userLocation['altitude'],
               bearing: userLocation['bearing'],
               speed: userLocation['speed'],
               horizontalAccuracy: userLocation['horizontalAccuracy'],
               verticalAccuracy: userLocation['verticalAccuracy'],
-              timestamp: DateTime.fromMillisecondsSinceEpoch(userLocation['timestamp'])
-          ));
+              timestamp: DateTime.fromMillisecondsSinceEpoch(
+                  userLocation['timestamp'])));
         }
         break;
       default:
@@ -500,10 +501,11 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
   }
 
   @override
-  Future<void> addImageSource(String name, Uint8List bytes,
-      LatLngQuad coordinates) async {
+  Future<void> addImageSource(
+      String name, Uint8List bytes, LatLngQuad coordinates) async {
     try {
-      return await _channel.invokeMethod('style#addImageSource', <String, Object>{
+      return await _channel
+          .invokeMethod('style#addImageSource', <String, Object>{
         "name": name,
         "bytes": bytes,
         "length": bytes.length,
@@ -517,10 +519,10 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
   @override
   Future<Point> toScreenLocation(LatLng latLng) async {
     try {
-      var screenPosMap = await _channel
-          .invokeMethod('map#toScreenLocation', <String, dynamic>{
+      var screenPosMap =
+          await _channel.invokeMethod('map#toScreenLocation', <String, dynamic>{
         'latitude': latLng.latitude,
-        'longitude':latLng.longitude,
+        'longitude': latLng.longitude,
       });
       return Point(screenPosMap['x'], screenPosMap['y']);
     } on PlatformException catch (e) {
@@ -531,44 +533,40 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
   @override
   Future<void> removeImageSource(String name) async {
     try {
-      return await _channel.invokeMethod('style#removeImageSource', <String, Object>{
-        "name": name
-      });
+      return await _channel.invokeMethod(
+          'style#removeImageSource', <String, Object>{"name": name});
     } on PlatformException catch (e) {
       return new Future.error(e);
     }
   }
-  
+
   @override
   Future<void> addLayer(String name, String sourceId) async {
     try {
-      return await _channel.invokeMethod('style#addLayer', <String, Object>{
-        "name": name,
-        "sourceId": sourceId
-      });
+      return await _channel.invokeMethod('style#addLayer',
+          <String, Object>{"name": name, "sourceId": sourceId});
     } on PlatformException catch (e) {
       return new Future.error(e);
     }
   }
-  
+
   @override
   Future<void> removeLayer(String name) async {
     try {
-      return await _channel.invokeMethod('style#removeLayer', <String, Object>{
-        "name": name
-      });
+      return await _channel
+          .invokeMethod('style#removeLayer', <String, Object>{"name": name});
     } on PlatformException catch (e) {
       return new Future.error(e);
     }
   }
-  
+
   @override
   Future<LatLng> toLatLng(Point screenLocation) async {
     try {
-      var latLngMap = await _channel
-          .invokeMethod('map#toLatLng', <String, dynamic>{
+      var latLngMap =
+          await _channel.invokeMethod('map#toLatLng', <String, dynamic>{
         'x': screenLocation.x,
-        'y':screenLocation.y,
+        'y': screenLocation.y,
       });
       return LatLng(latLngMap['latitude'], latLngMap['longitude']);
     } on PlatformException catch (e) {
@@ -577,7 +575,7 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
   }
 
   @override
-  Future<double> getMetersPerPixelAtLatitude(double latitude) async{
+  Future<double> getMetersPerPixelAtLatitude(double latitude) async {
     try {
       var latLngMap = await _channel
           .invokeMethod('map#getMetersPerPixelAtLatitude', <String, dynamic>{
@@ -589,4 +587,16 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
     }
   }
 
+  @override
+  Future<void> setCurrentLocation(double lat, double lon) async {
+    try {
+      await _channel.invokeMethod(
+          'locationComponent#setCurrentLocation', <String, dynamic>{
+        'lat': lat,
+        'lon': lon,
+      });
+    } on PlatformException catch (e) {
+      return new Future.error(e);
+    }
+  }
 }

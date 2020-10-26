@@ -377,8 +377,9 @@ final class MapboxMapController
     if (hasLocationPermission()) {
       locationEngine = LocationEngineProvider.getBestLocationEngine(context);
       LocationComponentOptions locationComponentOptions = LocationComponentOptions.builder(context)
-        .trackingGesturesManagement(true)
-        .build();
+              .trackingGesturesManagement(true)
+              .foregroundDrawable(R.drawable.location_icon)
+              .build();
       locationComponent = mapboxMap.getLocationComponent();
       locationComponent.activateLocationComponent(context, style, locationComponentOptions);
       locationComponent.setLocationComponentEnabled(true);
@@ -875,6 +876,16 @@ final class MapboxMapController
         }
         style.removeLayer((String) call.argument("name"));
         result.success(null);
+        break;
+      }
+      case "locationComponent#setCurrentLocation": {
+        final double lat = Double.parseDouble(call.argument("lat"));
+        final double lon = Double.parseDouble(call.argument("lon"));
+
+        if (locationEngine instanceof CurrentLocationEngine) {
+          ((CurrentLocationEngine) locationEngine).setLocation(lat, lon);
+        }
+
         break;
       }
       default:
