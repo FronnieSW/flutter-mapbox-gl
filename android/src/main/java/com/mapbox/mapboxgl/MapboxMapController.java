@@ -889,8 +889,11 @@ final class MapboxMapController
           location.setLatitude(lat);
           location.setLongitude(lon);
           location.setLongitude(lon);
-          locationComponent.setLocationEngine(null);
-          locationComponent.forceLocationUpdate(location);
+
+          if(locationComponent != null) {
+            locationComponent.setLocationEngine(null);
+            locationComponent.forceLocationUpdate(location);
+          }
         }
         break;
       }
