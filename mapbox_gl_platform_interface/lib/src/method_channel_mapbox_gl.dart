@@ -604,7 +604,7 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
   Future<void> setCurrentLocationIntermediate(List<LatLng> locations, bool lookAheadUpdate) async {
     try {
       await _channel.invokeMethod(
-          'locationComponent#setCurrentLocation', <String, dynamic>{
+          'locationComponent#setCurrentLocationIntermediate', <String, dynamic>{
         'locations': locations.map((loc) => {loc.latitude,loc.longitude}.toList()).toList(),
         'lookAheadUpdate': lookAheadUpdate,
       });

@@ -900,9 +900,9 @@ final class MapboxMapController
         final List<LatLng> locations = Convert.toLatLngList(call.argument("locations"));
         final boolean lookAheadUpdate = call.argument("lookAheadUpdate");
 
-        final List<Location> locationList = new ArrayList<Location>();
+        final List<Location> locationList = new ArrayList<>();
         for (LatLng latLng : locations) {
-          Location location = new Location("loc");
+          Location location = new Location("CurrentLocationEngine");
           location.setLatitude(latLng.getLatitude());
           location.setLongitude(latLng.getLongitude());
           locationList.add(location);
