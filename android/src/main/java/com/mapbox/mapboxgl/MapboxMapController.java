@@ -882,14 +882,14 @@ final class MapboxMapController
       case "locationComponent#setCurrentLocation": {
         final Double lat = call.argument("lat");
         final Double lon = call.argument("lon");
-        final Float bearing = call.argument("bearing");
+        final Double bearing = call.argument("bearing");
 
 
         if (lat != null && lon != null) {
           Location location = new Location("CurrentLocationEngine");
           location.setLatitude(lat);
           location.setLongitude(lon);
-          location.setBearing(bearing);
+          location.setBearing(bearing.floatValue());
 
           if(locationComponent != null) {
             locationComponent.setLocationEngine(null);
