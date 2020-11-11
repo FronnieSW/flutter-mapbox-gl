@@ -905,7 +905,6 @@ final class MapboxMapController
           Location location = new Location("loc");
           location.setLatitude(latLng.getLatitude());
           location.setLongitude(latLng.getLongitude());
-          location.setAltitude(latLng.getAltitude());
           locationList.add(location);
         }
 
