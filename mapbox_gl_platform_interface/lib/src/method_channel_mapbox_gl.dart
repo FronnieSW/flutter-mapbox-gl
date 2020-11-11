@@ -599,4 +599,17 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
       return new Future.error(e);
     }
   }
+
+  @override
+  Future<void> setCurrentLocationIntermediate(List<LatLng> locations, bool lookAheadUpdate) async {
+    try {
+      await _channel.invokeMethod(
+          'locationComponent#setCurrentLocation', <String, dynamic>{
+        'locations': locations,
+        'lookAheadUpdate': lookAheadUpdate,
+      });
+    } on PlatformException catch (e) {
+      return new Future.error(e);
+    }
+  }
 }
