@@ -588,12 +588,13 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
   }
 
   @override
-  Future<void> setCurrentLocation(double lat, double lon) async {
+  Future<void> setCurrentLocation(double lat, double lon, double bearing) async {
     try {
       await _channel.invokeMethod(
           'locationComponent#setCurrentLocation', <String, dynamic>{
         'lat': lat,
         'lon': lon,
+        'bearing': bearing,
       });
     } on PlatformException catch (e) {
       return new Future.error(e);

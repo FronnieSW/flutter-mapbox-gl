@@ -260,7 +260,7 @@ abstract class MapboxGlPlatform {
         'getMetersPerPixelAtLatitude() has not been implemented.');
   }
 
-  Future<void> setCurrentLocation(double lat, double lon) async {
+  Future<void> setCurrentLocation(double lat, double lon, double bearing) async {
     throw UnimplementedError(
         'setCurrentLocation() has not been implemented.');
   }
