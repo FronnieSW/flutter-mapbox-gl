@@ -807,4 +807,8 @@ class MapboxMapController extends ChangeNotifier {
   Future<void> setCurrentLocation(double lat, double lon) async {
     MapboxGlPlatform.getInstance(_id).setCurrentLocation(lat, lon);
   }
+
+  Future<void> setCurrentLocationIntermediate(List<LatLng> locations, bool lookAheadUpdate) async {
+    MapboxGlPlatform.getInstance(_id).setCurrentLocationIntermediate(locations,lookAheadUpdate);
+  }
 }

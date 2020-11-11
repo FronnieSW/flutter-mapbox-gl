@@ -886,8 +886,6 @@ final class MapboxMapController
         if (lat != null && lon != null) {
           Location location = new Location("CurrentLocationEngine");
           location.setLatitude(lat);
-          location.setLatitude(lat);
-          location.setLongitude(lon);
           location.setLongitude(lon);
 
           if(locationComponent != null) {
@@ -895,6 +893,27 @@ final class MapboxMapController
             locationComponent.forceLocationUpdate(location);
           }
         }
+        break;
+      }
+      case "locationComponent#setCurrentLocationIntermediate": {
+
+        final List<LatLng> locations = Convert.toLatLngList(call.argument("locations"));
+        final boolean lookAheadUpdate = call.argument("lookAheadUpdate");
+
+        final List<Location> locationList = new ArrayList<Location>();
+        for (LatLng latLng : locations) {
+          Location location = new Location("loc");
+          location.setLatitude(latLng.getLatitude());
+          location.setLongitude(latLng.getLongitude());
+          location.setAltitude(latLng.getAltitude());
+          locationList.add(location);
+        }
+
+          if(locationComponent != null) {
+            locationComponent.setLocationEngine(null);
+            locationComponent.forceLocationUpdate(locationList,lookAheadUpdate);
+          }
+
         break;
       }
       default:

@@ -262,6 +262,11 @@ abstract class MapboxGlPlatform {
 
   Future<void> setCurrentLocation(double lat, double lon) async {
     throw UnimplementedError(
-        'requestMyLocationLatLng() has not been implemented.');
+        'setCurrentLocation() has not been implemented.');
+  }
+
+  Future<void> setCurrentLocationIntermediate(List<LatLng> locations, bool lookAheadUpdate) async {
+    throw UnimplementedError(
+        'setCurrentLocationIntermediate() has not been implemented.');
   }
 }
