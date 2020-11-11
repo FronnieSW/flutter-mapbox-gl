@@ -906,7 +906,7 @@ final class MapboxMapController
           Location location = new Location("CurrentLocationEngine");
           location.setLatitude(latLng.getLatitude());
           location.setLongitude(latLng.getLongitude());
-          location.setTime(System.currentTimeMillis());
+          location.setTime(System.currentTimeMillis()+100);
           locationList.add(location);
         }
 
