@@ -605,7 +605,7 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
     try {
       await _channel.invokeMethod(
           'locationComponent#setCurrentLocation', <String, dynamic>{
-        'locations': locations.map((loc) => {loc.latitude,loc.longitude}).toList(),
+        'locations': locations.map((loc) => {loc.latitude,loc.longitude}.toList()).toList(),
         'lookAheadUpdate': lookAheadUpdate,
       });
     } on PlatformException catch (e) {
