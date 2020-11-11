@@ -77,6 +77,7 @@ import io.flutter.plugin.platform.PlatformView;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -905,6 +906,7 @@ final class MapboxMapController
           Location location = new Location("CurrentLocationEngine");
           location.setLatitude(latLng.getLatitude());
           location.setLongitude(latLng.getLongitude());
+          location.setTime(System.currentTimeMillis());
           locationList.add(location);
         }
 
