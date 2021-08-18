@@ -84,22 +84,6 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.platform.PlatformView;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.time.OffsetDateTime;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.mapbox.mapboxgl.MapboxMapsPlugin.CREATED;
-import static com.mapbox.mapboxgl.MapboxMapsPlugin.DESTROYED;
-import static com.mapbox.mapboxgl.MapboxMapsPlugin.PAUSED;
-import static com.mapbox.mapboxgl.MapboxMapsPlugin.RESUMED;
-import static com.mapbox.mapboxgl.MapboxMapsPlugin.STARTED;
-import static com.mapbox.mapboxgl.MapboxMapsPlugin.STOPPED;
-
-import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin;
-import com.mapbox.mapboxsdk.style.layers.RasterLayer;
-import com.mapbox.mapboxsdk.style.sources.ImageSource;
 
 /**
  * Controller of a single MapboxMaps MapView instance.
