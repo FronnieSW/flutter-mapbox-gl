@@ -5,27 +5,25 @@
 package com.mapbox.mapboxgl;
 
 import android.Manifest;
-import android.app.Activity;
-import android.app.Application;
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
-import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.location.Location;
 import android.os.Build;
-import android.os.Bundle;
 import android.util.DisplayMetrics;
-import androidx.annotation.NonNull;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwner;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -39,40 +37,51 @@ import com.mapbox.geojson.Feature;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdate;
-
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.geometry.LatLngQuad;
 import com.mapbox.mapboxsdk.geometry.VisibleRegion;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentOptions;
-import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.OnCameraTrackingChangedListener;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.MapboxMapOptions;
-import com.mapbox.mapboxsdk.maps.Projection;
-import com.mapbox.mapboxsdk.offline.OfflineManager;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
+import com.mapbox.mapboxsdk.offline.OfflineManager;
 import com.mapbox.mapboxsdk.plugins.annotation.Annotation;
 import com.mapbox.mapboxsdk.plugins.annotation.Circle;
 import com.mapbox.mapboxsdk.plugins.annotation.CircleManager;
+import com.mapbox.mapboxsdk.plugins.annotation.CircleOptions;
 import com.mapbox.mapboxsdk.plugins.annotation.Fill;
 import com.mapbox.mapboxsdk.plugins.annotation.FillManager;
+import com.mapbox.mapboxsdk.plugins.annotation.FillOptions;
+import com.mapbox.mapboxsdk.plugins.annotation.Line;
+import com.mapbox.mapboxsdk.plugins.annotation.LineManager;
+import com.mapbox.mapboxsdk.plugins.annotation.LineOptions;
 import com.mapbox.mapboxsdk.plugins.annotation.OnAnnotationClickListener;
 import com.mapbox.mapboxsdk.plugins.annotation.Symbol;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
-import com.mapbox.mapboxsdk.plugins.annotation.Line;
-import com.mapbox.mapboxsdk.plugins.annotation.LineManager;
-import com.mapbox.geojson.Feature;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
+import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin;
 import com.mapbox.mapboxsdk.style.expressions.Expression;
+import com.mapbox.mapboxsdk.style.layers.RasterLayer;
+import com.mapbox.mapboxsdk.style.sources.ImageSource;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
-import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.platform.PlatformView;
 
 import java.io.IOException;
@@ -95,8 +104,9 @@ import com.mapbox.mapboxsdk.style.sources.ImageSource;
 /**
  * Controller of a single MapboxMaps MapView instance.
  */
+@SuppressLint("MissingPermission")
 final class MapboxMapController
-  implements Application.ActivityLifecycleCallbacks,
+  implements DefaultLifecycleObserver,
   MapboxMap.OnCameraIdleListener,
   MapboxMap.OnCameraMoveListener,
   MapboxMap.OnCameraMoveStartedListener,
@@ -114,10 +124,9 @@ final class MapboxMapController
   PlatformView {
   private static final String TAG = "MapboxMapController";
   private final int id;
-  private final AtomicInteger activityState;
   private final MethodChannel methodChannel;
-  private final PluginRegistry.Registrar registrar;
-  private final MapView mapView;
+  private final MapboxMapsPlugin.LifecycleProvider lifecycleProvider;
+  private MapView mapView;
   private MapboxMap mapboxMap;
   private final Map<String, SymbolController> symbols;
   private final Map<String, LineController> lines;
@@ -134,7 +143,6 @@ final class MapboxMapController
   private boolean disposed = false;
   private final float density;
   private MethodChannel.Result mapReadyResult;
-  private final int registrarActivityHashCode;
   private final Context context;
   private final String styleStringInitial;
   private LocationComponent locationComponent = null;
@@ -142,20 +150,22 @@ final class MapboxMapController
   private LocationEngineCallback<LocationEngineResult> locationEngineCallback = null;
   private LocalizationPlugin localizationPlugin;
   private Style style;
+  private List<String> annotationOrder;
+  private List<String> annotationConsumeTapEvents;
 
   MapboxMapController(
     int id,
     Context context,
-    AtomicInteger activityState,
-    PluginRegistry.Registrar registrar,
+    BinaryMessenger messenger,
+    MapboxMapsPlugin.LifecycleProvider lifecycleProvider,
     MapboxMapOptions options,
     String accessToken,
-    String styleStringInitial) {
-    Mapbox.getInstance(context, accessToken!=null ? accessToken : getAccessToken(context));
+    String styleStringInitial,
+    List<String> annotationOrder,
+    List<String> annotationConsumeTapEvents) {
+    MapBoxUtils.getMapbox(context, accessToken);
     this.id = id;
     this.context = context;
-    this.activityState = activityState;
-    this.registrar = registrar;
     this.styleStringInitial = styleStringInitial;
     this.mapView = new MapView(context, options);
     this.symbols = new HashMap<>();
@@ -163,27 +173,11 @@ final class MapboxMapController
     this.circles = new HashMap<>();
     this.fills = new HashMap<>();
     this.density = context.getResources().getDisplayMetrics().density;
-    methodChannel =
-      new MethodChannel(registrar.messenger(), "plugins.flutter.io/mapbox_maps_" + id);
+    this.lifecycleProvider = lifecycleProvider;
+    methodChannel = new MethodChannel(messenger, "plugins.flutter.io/mapbox_maps_" + id);
     methodChannel.setMethodCallHandler(this);
-    this.registrarActivityHashCode = registrar.activity().hashCode();
-  }
-
-  private static String getAccessToken(@NonNull Context context) {
-    try {
-      ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
-      Bundle bundle = ai.metaData;
-      String token = bundle.getString("com.mapbox.token");
-      if (token == null || token.isEmpty()) {
-        throw new NullPointerException();
-      }
-      return token;
-    } catch (Exception e) {
-      Log.e(TAG, "Failed to find an Access Token in the Application meta-data. Maps may not load correctly. " +
-        "Please refer to the installation guide at https://github.com/tobrun/flutter-mapbox-gl#mapbox-access-token " +
-        "for troubleshooting advice." + e.getMessage());
-    }
-    return null;
+    this.annotationOrder = annotationOrder;
+    this.annotationConsumeTapEvents = annotationConsumeTapEvents;
   }
 
   @Override
@@ -192,43 +186,7 @@ final class MapboxMapController
   }
 
   void init() {
-    switch (activityState.get()) {
-      case STOPPED:
-        mapView.onCreate(null);
-        mapView.onStart();
-        mapView.onResume();
-        mapView.onPause();
-        mapView.onStop();
-        break;
-      case PAUSED:
-        mapView.onCreate(null);
-        mapView.onStart();
-        mapView.onResume();
-        mapView.onPause();
-        break;
-      case RESUMED:
-        mapView.onCreate(null);
-        mapView.onStart();
-        mapView.onResume();
-        break;
-      case STARTED:
-        mapView.onCreate(null);
-        mapView.onStart();
-        break;
-      case CREATED:
-        mapView.onCreate(null);
-        break;
-      case DESTROYED:
-        mapboxMap.removeOnCameraIdleListener(this);
-        mapboxMap.removeOnCameraMoveStartedListener(this);
-        mapboxMap.removeOnCameraMoveListener(this);
-        mapView.onDestroy();
-        break;
-      default:
-        throw new IllegalArgumentException(
-          "Cannot interpret " + activityState.get() + " as an activity state");
-    }
-    registrar.activity().getApplication().registerActivityLifecycleCallbacks(this);
+    lifecycleProvider.getLifecycle().addObserver(this);
     mapView.getMapAsync(this);
   }
 
@@ -334,21 +292,23 @@ final class MapboxMapController
 
   @Override
   public void setStyleString(String styleString) {
-    //check if json, url or plain string:
+    // Check if json, url, absolute path or asset path:
     if (styleString == null || styleString.isEmpty()) {
       Log.e(TAG, "setStyleString - string empty or null");
     } else if (styleString.startsWith("{") || styleString.startsWith("[")) {
       mapboxMap.setStyle(new Style.Builder().fromJson(styleString), onStyleLoadedCallback);
+    } else if (styleString.startsWith("/")) {
+      // Absolute path
+      mapboxMap.setStyle(new Style.Builder().fromUri("file://" + styleString), onStyleLoadedCallback);
     } else if (
-      !styleString.startsWith("http://") && 
-      !styleString.startsWith("https://")&& 
+      !styleString.startsWith("http://") &&
+      !styleString.startsWith("https://")&&
       !styleString.startsWith("mapbox://")) {
       // We are assuming that the style will be loaded from an asset here.
-      AssetManager assetManager = registrar.context().getAssets();
-      String key = registrar.lookupKeyForAsset(styleString);
+      String key = MapboxMapsPlugin.flutterAssets.getAssetFilePathByName(styleString);
       mapboxMap.setStyle(new Style.Builder().fromUri("asset://" + key), onStyleLoadedCallback);
     } else {
-      mapboxMap.setStyle(new Style.Builder().fromUrl(styleString), onStyleLoadedCallback);
+      mapboxMap.setStyle(new Style.Builder().fromUri(styleString), onStyleLoadedCallback);
     }
   }
 
@@ -356,10 +316,25 @@ final class MapboxMapController
     @Override
     public void onStyleLoaded(@NonNull Style style) {
       MapboxMapController.this.style = style;
-      enableLineManager(style);
-      enableSymbolManager(style);
-      enableCircleManager(style);
-      enableFillManager(style);
+      for(String annotationType : annotationOrder) {
+        switch (annotationType) {
+          case "AnnotationType.fill":
+            enableFillManager(style);
+            break;
+          case "AnnotationType.line":
+            enableLineManager(style);
+            break;
+          case "AnnotationType.circle":
+            enableCircleManager(style);
+            break;
+          case "AnnotationType.symbol":
+            enableSymbolManager(style);
+            break;
+          default:
+            throw new IllegalArgumentException("Unknown annotation type: " + annotationType + ", must be either 'fill', 'line', 'circle' or 'symbol'");
+        }
+      }
+
       if (myLocationEnabled) {
         enableLocationComponent(style);
       }
@@ -407,7 +382,9 @@ final class MapboxMapController
     userLocation.put("altitude", location.getAltitude());
     userLocation.put("bearing", location.getBearing());
     userLocation.put("horizontalAccuracy", location.getAccuracy());
-    userLocation.put("verticalAccuracy", (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ? location.getVerticalAccuracyMeters() : null);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      userLocation.put("verticalAccuracy", (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ? location.getVerticalAccuracyMeters() : null);
+    }
     userLocation.put("timestamp", location.getTime());
 
     final Map<String, Object> arguments = new HashMap<>(1);
@@ -425,8 +402,6 @@ final class MapboxMapController
       symbolManager.addClickListener(MapboxMapController.this::onAnnotationClick);
     }
   }
-
-
 
   private void enableLineManager(@NonNull Style style) {
     if (lineManager == null) {
@@ -504,6 +479,19 @@ final class MapboxMapController
         PointF pointf = mapboxMap.getProjection().toScreenLocation(new LatLng(call.argument("latitude"),call.argument("longitude")));
         reply.put("x", pointf.x);
         reply.put("y", pointf.y);
+        result.success(reply);
+        break;
+      }
+      case "map#toScreenLocationBatch": {
+        double[] param = (double[])call.argument("coordinates");
+        double[] reply = new double[param.length];
+
+        for (int i = 0; i < param.length; i += 2) {
+          PointF pointf = mapboxMap.getProjection().toScreenLocation(new LatLng(param[i], param[i + 1]));
+          reply[i] = pointf.x;
+          reply[i + 1] = pointf.y;
+        }
+
         result.success(reply);
         break;
       }
@@ -652,7 +640,7 @@ final class MapboxMapController
             for (Symbol symbol : newSymbols) {
               symbolId = String.valueOf(symbol.getId());
               newSymbolIds.add(symbolId);
-              symbols.put(symbolId, new SymbolController(symbol, true, this));
+              symbols.put(symbolId, new SymbolController(symbol, annotationConsumeTapEvents.contains("AnnotationType.symbol"), this));
             }
           }
         }
@@ -660,7 +648,7 @@ final class MapboxMapController
         break;
       }
       case "symbols#removeAll": {
-        final ArrayList<String> symbolIds = call.argument("symbols");
+        final ArrayList<String> symbolIds = call.argument("ids");
         SymbolController symbolController;
 
         List<Symbol> symbolList = new ArrayList<Symbol>();
@@ -722,13 +710,54 @@ final class MapboxMapController
         Convert.interpretLineOptions(call.argument("options"), lineBuilder);
         final Line line = lineBuilder.build();
         final String lineId = String.valueOf(line.getId());
-        lines.put(lineId, new LineController(line, true, this));
+        lines.put(lineId, new LineController(line,  annotationConsumeTapEvents.contains("AnnotationType.line"), this));
         result.success(lineId);
         break;
       }
       case "line#remove": {
         final String lineId = call.argument("line");
         removeLine(lineId);
+        result.success(null);
+        break;
+      }
+      case "line#addAll": {
+        List<String> newIds = new ArrayList<String>();
+        final List<Object> options = call.argument("options");
+        List<LineOptions> optionList = new ArrayList<LineOptions>();
+        if (options != null) {
+          LineBuilder builder;
+          for (Object o : options) {
+            builder = newLineBuilder();
+            Convert.interpretLineOptions(o, builder);
+            optionList.add(builder.getLineOptions());
+          }
+          if (!optionList.isEmpty()) {
+            List<Line> newLines = lineManager.create(optionList);
+            String id;
+            for (Line line : newLines) {
+              id = String.valueOf(line.getId());
+              newIds.add(id);
+              lines.put(id, new LineController(line, true, this));
+            }
+          }
+        }
+        result.success(newIds);
+        break;
+      }
+      case "line#removeAll": {
+        final ArrayList<String> ids = call.argument("ids");
+        LineController lineController;
+
+        List<Line> toBeRemoved = new ArrayList<Line>();
+        for(String id : ids){
+            lineController = lines.remove(id);
+            if (lineController != null) {
+              toBeRemoved.add(lineController.getLine());
+            }
+        }
+        if(!toBeRemoved.isEmpty()) {
+          lineManager.delete(toBeRemoved);
+        }
         result.success(null);
         break;
       }
@@ -759,8 +788,49 @@ final class MapboxMapController
         Convert.interpretCircleOptions(call.argument("options"), circleBuilder);
         final Circle circle = circleBuilder.build();
         final String circleId = String.valueOf(circle.getId());
-        circles.put(circleId, new CircleController(circle, true, this));
+        circles.put(circleId, new CircleController(circle,  annotationConsumeTapEvents.contains("AnnotationType.circle"), this));
         result.success(circleId);
+        break;
+      }
+      case "circle#addAll": {
+        List<String> newIds = new ArrayList<String>();
+        final List<Object> options = call.argument("options");
+        List<CircleOptions> optionList = new ArrayList<CircleOptions>();
+        if (options != null) {
+          CircleBuilder builder;
+          for (Object o : options) {
+            builder = newCircleBuilder();
+            Convert.interpretCircleOptions(o, builder);
+            optionList.add(builder.getCircleOptions());
+          }
+          if (!optionList.isEmpty()) {
+            List<Circle> newCircles = circleManager.create(optionList);
+            String id;
+            for (Circle circle : newCircles) {
+              id = String.valueOf(circle.getId());
+              newIds.add(id);
+              circles.put(id, new CircleController(circle, true, this));
+            }
+          }
+        }
+        result.success(newIds);
+        break;
+      }
+      case "circle#removeAll": {
+        final ArrayList<String> ids = call.argument("ids");
+        CircleController circleController;
+
+        List<Circle> toBeRemoved = new ArrayList<Circle>();
+        for(String id : ids){
+            circleController = circles.remove(id);
+            if (circleController != null) {
+              toBeRemoved.add(circleController.getCircle());
+            }
+        }
+        if(!toBeRemoved.isEmpty()) {
+          circleManager.delete(toBeRemoved);
+        }
+        result.success(null);
         break;
       }
       case "circle#remove": {
@@ -793,8 +863,50 @@ final class MapboxMapController
         Convert.interpretFillOptions(call.argument("options"), fillBuilder);
         final Fill fill = fillBuilder.build();
         final String fillId = String.valueOf(fill.getId());
-        fills.put(fillId, new FillController(fill, true, this));
+        fills.put(fillId, new FillController(fill,  annotationConsumeTapEvents.contains("AnnotationType.fill"), this));
         result.success(fillId);
+        break;
+      }
+
+      case "fill#addAll": {
+        List<String> newIds = new ArrayList<String>();
+        final List<Object> options = call.argument("options");
+        List<FillOptions> optionList = new ArrayList<FillOptions>();
+        if (options != null) {
+          FillBuilder builder;
+          for (Object o : options) {
+            builder = newFillBuilder();
+            Convert.interpretFillOptions(o, builder);
+            optionList.add(builder.getFillOptions());
+          }
+          if (!optionList.isEmpty()) {
+            List<Fill> newFills = fillManager.create(optionList);
+            String id;
+            for (Fill fill : newFills) {
+              id = String.valueOf(fill.getId());
+              newIds.add(id);
+              fills.put(id, new FillController(fill, true, this));
+            }
+          }
+        }
+        result.success(newIds);
+        break;
+      }
+      case "fill#removeAll": {
+        final ArrayList<String> ids = call.argument("ids");
+        FillController fillController;
+
+        List<Fill> toBeRemoved = new ArrayList<Fill>();
+        for(String id : ids){
+            fillController = fills.remove(id);
+            if (fillController != null) {
+              toBeRemoved.add(fillController.getFill());
+            }
+        }
+        if(!toBeRemoved.isEmpty()) {
+          fillManager.delete(toBeRemoved);
+        }
+        result.success(null);
         break;
       }
       case "fill#remove": {
@@ -851,7 +963,7 @@ final class MapboxMapController
           result.error("STYLE IS NULL", "The style is null. Has onStyleLoaded() already been invoked?", null);
         }
         List<LatLng> coordinates = Convert.toLatLngList(call.argument("coordinates"));
-        style.addSource(new ImageSource(call.argument("name"), new LatLngQuad(coordinates.get(0), coordinates.get(1), coordinates.get(2), coordinates.get(3)), BitmapFactory.decodeByteArray(call.argument("bytes"), 0, call.argument("length"))));
+        style.addSource(new ImageSource(call.argument("imageSourceId"), new LatLngQuad(coordinates.get(0), coordinates.get(1), coordinates.get(2), coordinates.get(3)), BitmapFactory.decodeByteArray(call.argument("bytes"), 0, call.argument("length"))));
         result.success(null);
         break;
       }
@@ -859,7 +971,7 @@ final class MapboxMapController
         if (style == null) {
           result.error("STYLE IS NULL", "The style is null. Has onStyleLoaded() already been invoked?", null);
         }
-        style.removeSource((String) call.argument("name"));
+        style.removeSource((String) call.argument("imageSourceId"));
         result.success(null);
         break;
       }
@@ -867,7 +979,15 @@ final class MapboxMapController
         if (style == null) {
           result.error("STYLE IS NULL", "The style is null. Has onStyleLoaded() already been invoked?", null);
         }
-        style.addLayer(new RasterLayer(call.argument("name"), call.argument("sourceId")));
+        style.addLayer(new RasterLayer(call.argument("imageLayerId"), call.argument("imageSourceId")));
+        result.success(null);
+        break;
+      }
+      case "style#addLayerBelow": {
+        if (style == null) {
+          result.error("STYLE IS NULL", "The style is null. Has onStyleLoaded() already been invoked?", null);
+        }
+        style.addLayerBelow(new RasterLayer(call.argument("imageLayerId"), call.argument("imageSourceId")), call.argument("belowLayerId"));
         result.success(null);
         break;
       }
@@ -875,7 +995,7 @@ final class MapboxMapController
         if (style == null) {
           result.error("STYLE IS NULL", "The style is null. Has onStyleLoaded() already been invoked?", null);
         }
-        style.removeLayer((String) call.argument("name"));
+        style.removeLayer((String) call.argument("imageLayerId"));
         result.success(null);
         break;
       }
@@ -943,7 +1063,11 @@ final class MapboxMapController
 
   @Override
   public void onCameraIdle() {
-    methodChannel.invokeMethod("camera#onIdle", Collections.singletonMap("map", id));
+    final Map<String, Object> arguments = new HashMap<>(2);
+    if (trackCameraPosition) {
+      arguments.put("position", Convert.toJson(mapboxMap.getCameraPosition()));
+    }
+    methodChannel.invokeMethod("camera#onIdle", arguments);
   }
 
   @Override
@@ -964,31 +1088,27 @@ final class MapboxMapController
     if (annotation instanceof Symbol) {
       final SymbolController symbolController = symbols.get(String.valueOf(annotation.getId()));
       if (symbolController != null) {
-        symbolController.onTap();
-        return true;
+        return symbolController.onTap();
       }
     }
 
     if (annotation instanceof Line) {
       final LineController lineController = lines.get(String.valueOf(annotation.getId()));
       if (lineController != null) {
-        lineController.onTap();
-        return true;
+        return lineController.onTap();
       }
     }
 
     if (annotation instanceof Circle) {
       final CircleController circleController = circles.get(String.valueOf(annotation.getId()));
       if (circleController != null) {
-        circleController.onTap();
-        return true;
+        return circleController.onTap();
       }
     }
     if (annotation instanceof Fill) {
       final FillController fillController = fills.get(String.valueOf(annotation.getId()));
       if (fillController != null) {
-        fillController.onTap();
-        return true;
+        return fillController.onTap();
       }
     }
     return false;
@@ -1048,10 +1168,23 @@ final class MapboxMapController
 
   @Override
   public void dispose() {
-    if (disposed || registrar.activity() == null) {
+    if (disposed) {
       return;
     }
     disposed = true;
+    methodChannel.setMethodCallHandler(null);
+    destroyMapViewIfNecessary();
+    Lifecycle lifecycle = lifecycleProvider.getLifecycle();
+    if (lifecycle != null) {
+      lifecycle.removeObserver(this);
+    }
+  }
+
+  private void destroyMapViewIfNecessary() {
+    if (mapView == null) {
+      return;
+    }
+
     if (locationComponent != null) {
       locationComponent.setLocationComponentEnabled(false);
     }
@@ -1068,29 +1201,30 @@ final class MapboxMapController
       fillManager.onDestroy();
     }
     stopListeningForLocationUpdates();
+
     mapView.onDestroy();
-    registrar.activity().getApplication().unregisterActivityLifecycleCallbacks(this);
+    mapView = null;
   }
 
   @Override
-  public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-    if (disposed || activity.hashCode() != registrarActivityHashCode) {
+  public void onCreate(@NonNull LifecycleOwner owner) {
+    if (disposed) {
       return;
     }
-    mapView.onCreate(savedInstanceState);
+    mapView.onCreate(null);
   }
 
   @Override
-  public void onActivityStarted(Activity activity) {
-    if (disposed || activity.hashCode() != registrarActivityHashCode) {
+  public void onStart(@NonNull LifecycleOwner owner) {
+    if (disposed) {
       return;
     }
     mapView.onStart();
   }
 
   @Override
-  public void onActivityResumed(Activity activity) {
-    if (disposed || activity.hashCode() != registrarActivityHashCode) {
+  public void onResume(@NonNull LifecycleOwner owner) {
+    if (disposed) {
       return;
     }
     mapView.onResume();
@@ -1100,36 +1234,28 @@ final class MapboxMapController
   }
 
   @Override
-  public void onActivityPaused(Activity activity) {
-    if (disposed || activity.hashCode() != registrarActivityHashCode) {
+  public void onPause(@NonNull LifecycleOwner owner) {
+    if (disposed) {
       return;
     }
-    mapView.onPause();
-    stopListeningForLocationUpdates();
+    mapView.onResume();
   }
 
   @Override
-  public void onActivityStopped(Activity activity) {
-    if (disposed || activity.hashCode() != registrarActivityHashCode) {
+  public void onStop(@NonNull LifecycleOwner owner) {
+    if (disposed) {
       return;
     }
     mapView.onStop();
   }
 
   @Override
-  public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
-    if (disposed || activity.hashCode() != registrarActivityHashCode) {
+  public void onDestroy(@NonNull LifecycleOwner owner) {
+    owner.getLifecycle().removeObserver(this);
+    if (disposed) {
       return;
     }
-    mapView.onSaveInstanceState(outState);
-  }
-
-  @Override
-  public void onActivityDestroyed(Activity activity) {
-    if (disposed || activity.hashCode() != registrarActivityHashCode) {
-      return;
-    }
-    mapView.onDestroy();
+    destroyMapViewIfNecessary();
   }
 
   // MapboxMapOptionsSink methods
@@ -1330,8 +1456,7 @@ final class MapboxMapController
    * @return
    */
   private Bitmap getScaledImage(String imageId, float density) {
-    AssetManager assetManager = registrar.context().getAssets();
-    AssetFileDescriptor assetFileDescriptor = null;
+    AssetFileDescriptor assetFileDescriptor;
 
     // Split image path into parts.
     List<String> imagePathList = Arrays.asList(imageId.split("/"));
@@ -1344,7 +1469,7 @@ final class MapboxMapController
       String assetPath;
       if (i == 1) {
         // If density is 1.0x then simply take the default asset path
-        assetPath = registrar.lookupKeyForAsset(imageId);
+        assetPath = MapboxMapsPlugin.flutterAssets.getAssetFilePathByName(imageId);
       } else {
         // Build a resolution aware asset path as follows:
         // <directory asset>/<ratio>/<image name>
@@ -1357,7 +1482,7 @@ final class MapboxMapController
         stringBuilder.append(((float) i) + "x");
         stringBuilder.append("/");
         stringBuilder.append(imagePathList.get(imagePathList.size()-1));
-        assetPath = registrar.lookupKeyForAsset(stringBuilder.toString());
+        assetPath = MapboxMapsPlugin.flutterAssets.getAssetFilePathByName(stringBuilder.toString());
       }
       // Build up a list of resolution aware asset paths.
       assetPathList.add(assetPath);
@@ -1368,7 +1493,7 @@ final class MapboxMapController
     for (String assetPath : assetPathList) {
       try {
         // Read path (throws exception if doesn't exist).
-        assetFileDescriptor = assetManager.openFd(assetPath);
+        assetFileDescriptor = mapView.getContext().getAssets().openFd(assetPath);
         InputStream assetStream = assetFileDescriptor.createInputStream();
         bitmap = BitmapFactory.decodeStream(assetStream);
         assetFileDescriptor.close(); // Close for memory
