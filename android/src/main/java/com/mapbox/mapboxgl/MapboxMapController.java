@@ -339,6 +339,7 @@ final class MapboxMapController
       LocationComponentOptions locationComponentOptions = LocationComponentOptions.builder(context)
               .trackingGesturesManagement(true)
               .gpsDrawable(R.drawable.location_icon)
+              .maxZoomIconScale(0.7f)
               .build();
       locationComponent = mapboxMap.getLocationComponent();
       locationComponent.activateLocationComponent(context, style, locationComponentOptions);
