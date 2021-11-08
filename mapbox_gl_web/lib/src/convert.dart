@@ -56,11 +56,16 @@ class Convert {
           options['logoViewMargins'][0], options['logoViewMargins'][1]);
     }
     if (options.containsKey('compassViewPosition')) {
-      sink.setCompassGravity(options['compassViewPosition']);
+      final position = CompassViewPosition.values[options['compassViewPosition']];
+      sink.setCompassAlignment(position);
     }
     if (options.containsKey('compassViewMargins')) {
       sink.setCompassViewMargins(
           options['compassViewMargins'][0], options['compassViewMargins'][1]);
+    }
+    if (options.containsKey('attributionButtonPosition')) {
+      final position = AttributionButtonPosition.values[options['attributionButtonPosition']];
+      sink.setAttributionButtonAlignment(position);
     }
     if (options.containsKey('attributionButtonMargins')) {
       sink.setAttributionButtonMargins(options['attributionButtonMargins'][0],
@@ -203,7 +208,7 @@ class Convert {
       properties['iconRotate'] = options.iconRotate;
     }
     if (options.iconOffset != null) {
-      properties['iconOffset'] = [options.iconOffset.dx, options.iconOffset.dy];
+      properties['iconOffset'] = [options.iconOffset!.dx, options.iconOffset!.dy];
     }
     if (options.iconAnchor != null) {
       properties['iconAnchor'] = options.iconAnchor;
@@ -233,7 +238,7 @@ class Convert {
       properties['textTransform'] = options.textTransform;
     }
     if (options.textOffset != null) {
-      properties['textOffset'] = [options.textOffset.dx, options.textOffset.dy];
+      properties['textOffset'] = [options.textOffset!.dx, options.textOffset!.dy];
     }
     if (options.iconOpacity != null) {
       properties['iconOpacity'] = options.iconOpacity;
@@ -268,7 +273,7 @@ class Convert {
     if (options.geometry != null) {
       geometry = Geometry(
         type: geometry.type,
-        coordinates: [options.geometry.longitude, options.geometry.latitude],
+        coordinates: [options.geometry!.longitude, options.geometry!.latitude],
       );
     }
     if (options.zIndex != null) {
@@ -310,7 +315,7 @@ class Convert {
     if (options.geometry != null) {
       geometry = Geometry(
         type: geometry.type,
-        coordinates: options.geometry
+        coordinates: options.geometry!
             .map((latLng) => [latLng.longitude, latLng.latitude])
             .toList(),
       );
@@ -349,7 +354,7 @@ class Convert {
     if (options.geometry != null) {
       geometry = Geometry(
         type: geometry.type,
-        coordinates: [options.geometry.longitude, options.geometry.latitude],
+        coordinates: [options.geometry!.longitude, options.geometry!.latitude],
       );
     }
     if (options.draggable != null) {
@@ -406,7 +411,7 @@ class Convert {
     if (options.geometry != null) {
       geometry = Geometry(
         type: geometry.type,
-        coordinates: fillGeometryToFeatureGeometry(options.geometry),
+        coordinates: fillGeometryToFeatureGeometry(options.geometry!),
       );
     }
     return feature.copyWith(properties: properties, geometry: geometry);

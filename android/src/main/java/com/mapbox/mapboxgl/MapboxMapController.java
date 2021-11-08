@@ -37,6 +37,7 @@ import com.mapbox.geojson.Feature;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdate;
+import com.mapbox.mapboxsdk.constants.MapboxConstants;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.geometry.LatLngQuad;
@@ -94,6 +95,7 @@ final class MapboxMapController
   MapboxMap.OnCameraIdleListener,
   MapboxMap.OnCameraMoveListener,
   MapboxMap.OnCameraMoveStartedListener,
+  MapView.OnDidBecomeIdleListener,
   OnAnnotationClickListener,
   MapboxMap.OnMapClickListener,
   MapboxMap.OnMapLongClickListener,
@@ -270,6 +272,8 @@ final class MapboxMapController
       }
     });
 
+    mapView.addOnDidBecomeIdleListener(this);
+
     setStyleString(styleStringInitial);
     // updateMyLocationEnabled();
   }
@@ -420,7 +424,7 @@ final class MapboxMapController
         mapReadyResult = result;
         break;
       case "map#update": {
-        Convert.interpretMapboxMapOptions(call.argument("options"), this);
+        Convert.interpretMapboxMapOptions(call.argument("options"), this, context);
         result.success(Convert.toJson(getCameraPosition()));
         break;
       }
@@ -1069,6 +1073,11 @@ final class MapboxMapController
   }
 
   @Override
+  public void onDidBecomeIdle() {
+    methodChannel.invokeMethod("map#onIdle", new HashMap<>());
+  }
+
+  @Override
   public boolean onAnnotationClick(Annotation annotation) {
     if (annotation instanceof Symbol) {
       final SymbolController symbolController = symbols.get(String.valueOf(annotation.getId()));
@@ -1277,13 +1286,8 @@ final class MapboxMapController
 
   @Override
   public void setMinMaxZoomPreference(Float min, Float max) {
-    //mapboxMap.resetMinMaxZoomPreference();
-    if (min != null) {
-      mapboxMap.setMinZoomPreference(min);
-    }
-    if (max != null) {
-      mapboxMap.setMaxZoomPreference(max);
-    }
+    mapboxMap.setMinZoomPreference(min != null ? min : MapboxConstants.MINIMUM_ZOOM);
+    mapboxMap.setMaxZoomPreference(max != null ? max : MapboxConstants.MAXIMUM_ZOOM);
   }
 
   @Override
@@ -1368,8 +1372,42 @@ final class MapboxMapController
   }
 
   @Override
+  public void setAttributionButtonGravity(int gravity) {
+    switch(gravity) {
+      case 0:
+        mapboxMap.getUiSettings().setAttributionGravity(Gravity.TOP | Gravity.START);
+        break;
+      default:
+      case 1:
+        mapboxMap.getUiSettings().setAttributionGravity(Gravity.TOP | Gravity.END);
+        break;
+      case 2:
+        mapboxMap.getUiSettings().setAttributionGravity(Gravity.BOTTOM | Gravity.START);
+        break;
+      case 3:
+        mapboxMap.getUiSettings().setAttributionGravity(Gravity.BOTTOM | Gravity.END);
+        break;
+    }
+  }
+
+  @Override
   public void setAttributionButtonMargins(int x, int y) {
-    mapboxMap.getUiSettings().setAttributionMargins(0, 0, x, y);
+    switch(mapboxMap.getUiSettings().getAttributionGravity())
+    {
+      case Gravity.TOP | Gravity.START:
+        mapboxMap.getUiSettings().setAttributionMargins(x, y, 0, 0);
+        break;
+      default:
+      case Gravity.TOP | Gravity.END:
+        mapboxMap.getUiSettings().setAttributionMargins(0, y, x, 0);
+        break;
+      case Gravity.BOTTOM | Gravity.START:
+        mapboxMap.getUiSettings().setAttributionMargins(x, 0, 0, y);
+        break;
+      case Gravity.BOTTOM | Gravity.END:
+        mapboxMap.getUiSettings().setAttributionMargins(0, 0, x, y);
+        break;
+    }
   }
 
   private void updateMyLocationEnabled() {

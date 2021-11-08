@@ -10,6 +10,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
     
     private var mapView: MGLMapView
     private var isMapReady = false
+    private var isStyleReady = false
     private var mapReadyResult: FlutterResult?
     
     private var initialTilt: CGFloat?
@@ -57,7 +58,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             longPress.require(toFail: recognizer)
         }
         mapView.addGestureRecognizer(longPress)
-        
+
         if let args = args as? [String: Any] {
             Convert.interpretMapboxMapOptions(options: args["options"], delegate: self)
             if let initialCameraPosition = args["initialCameraPosition"] as? [String: Any],
@@ -72,8 +73,14 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             if let annotationConsumeTapEventsArg = args["annotationConsumeTapEvents"] as? [String] {
                 annotationConsumeTapEvents = annotationConsumeTapEventsArg
             }
+            if let onAttributionClickOverride = args["onAttributionClickOverride"] as? Bool {
+                if  onAttributionClickOverride {
+                    setupAttribution(mapView)
+                }
+            }
         }
     }
+
     func removeAllForController(controller: MGLAnnotationController, ids: [String]){
         let idSet = Set(ids)
         let annotations = controller.styleAnnotations()
@@ -85,6 +92,13 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
         case "map#waitForMap":
             if isMapReady {
                 result(nil)
+                //Style could happen to been ready before the map was ready due to the order of methods invoked
+                //We should invoke onStyleLoaded
+                if isStyleReady {
+                    if let channel = channel {
+                        channel.invokeMethod("map#onStyleLoaded", arguments: nil)
+                    }
+                }
             } else {
                 mapReadyResult = result
             }
@@ -813,7 +827,24 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
         }
         return MGLAnnotationView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
     }
-    
+
+    /*
+     * Override the attribution button's click target to handle the event locally.
+     * Called if the application supplies an onAttributionClick handler.
+     */
+    func setupAttribution(_ mapView: MGLMapView) {
+        mapView.attributionButton.removeTarget(mapView, action: #selector(mapView.showAttribution), for: .touchUpInside)
+        mapView.attributionButton.addTarget(self, action: #selector(showAttribution), for: UIControl.Event.touchUpInside)
+    }
+
+    /*
+     * Custom click handler for the attribution button. This callback is bound when
+     * the application specifies an onAttributionClick handler.
+     */
+    @objc func showAttribution() {
+        channel?.invokeMethod("map#onAttributionClick", arguments: [])
+    }
+
     /*
      *  MGLMapViewDelegate
      */
@@ -831,29 +862,35 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             switch annotationType {
             case "AnnotationType.fill":
                 fillAnnotationController = MGLPolygonAnnotationController(mapView: self.mapView)
-                fillAnnotationController!.annotationsInteractionEnabled = true
+                fillAnnotationController!.annotationsInteractionEnabled = annotationConsumeTapEvents.contains("AnnotationType.fill")
                 fillAnnotationController?.delegate = self
             case "AnnotationType.line":
                 lineAnnotationController = MGLLineAnnotationController(mapView: self.mapView)
-                lineAnnotationController!.annotationsInteractionEnabled = true
+                lineAnnotationController!.annotationsInteractionEnabled = annotationConsumeTapEvents.contains("AnnotationType.line")
                 lineAnnotationController?.delegate = self
             case "AnnotationType.circle":
                 circleAnnotationController = MGLCircleAnnotationController(mapView: self.mapView)
-                circleAnnotationController!.annotationsInteractionEnabled = true
+                circleAnnotationController!.annotationsInteractionEnabled = annotationConsumeTapEvents.contains("AnnotationType.circle")
                 circleAnnotationController?.delegate = self
             case "AnnotationType.symbol":
                 symbolAnnotationController = MGLSymbolAnnotationController(mapView: self.mapView)
-                symbolAnnotationController!.annotationsInteractionEnabled = true
+                symbolAnnotationController!.annotationsInteractionEnabled = annotationConsumeTapEvents.contains("AnnotationType.symbol")
                 symbolAnnotationController?.delegate = self
             default:
                 print("Unknown annotation type: \(annotationType), must be either 'fill', 'line', 'circle' or 'symbol'")  
             }
         }
 
-        mapReadyResult?(nil)
-        if let channel = channel {
-            channel.invokeMethod("map#onStyleLoaded", arguments: nil)
+        //If map is ready and map#waitForMap was called, we invoke onStyleLoaded callback directly
+        //If not, we will have to call it when map#waitForMap is done
+        if let mapReadyResult = mapReadyResult {
+            mapReadyResult(nil)
+            if let channel = channel {
+                channel.invokeMethod("map#onStyleLoaded", arguments: nil)
+            }
         }
+
+        isStyleReady = true
     }
     
     func mapView(_ mapView: MGLMapView, shouldChangeFrom oldCamera: MGLMapCamera, to newCamera: MGLMapCamera) -> Bool {
@@ -1046,5 +1083,8 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
     }
     func setAttributionButtonMargins(x: Double, y: Double) {
         mapView.attributionButtonMargins = CGPoint(x: x, y: y)
+    }
+    func setAttributionButtonPosition(position: MGLOrnamentPosition) {
+        mapView.attributionButtonPosition = position
     }
 }
