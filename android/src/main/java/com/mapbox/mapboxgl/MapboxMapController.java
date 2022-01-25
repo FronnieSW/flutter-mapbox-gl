@@ -1402,7 +1402,7 @@ final class MapboxMapController
       }
       case "locationComponent#setCurrentLocationIntermediate": {
 
-        final List<LatLng> locations = Convert.toLatLngList(call.argument("locations"));
+        final List<LatLng> locations = Convert.toLatLngList(call.argument("locations"), false);
         final boolean lookAheadUpdate = call.argument("lookAheadUpdate");
 
         final List<Location> locationList = new ArrayList<>();
