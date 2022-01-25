@@ -862,7 +862,7 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
           .map((key, value) => MapEntry<String, String>(key, jsonEncode(value)))
     });
   }
-}
+
 
   @override
   Future<void> setCurrentLocationIntermediate(
