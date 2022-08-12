@@ -275,15 +275,13 @@ final class MapboxMapController
   private void enableLocationComponent(@NonNull Style style) {
     if (hasLocationPermission()) {
       locationEngine = LocationEngineProvider.getBestLocationEngine(context);
-      ///This might be deleted
       LocationComponentOptions locationComponentOptions = LocationComponentOptions.builder(context)
               .trackingGesturesManagement(true)
               .gpsDrawable(R.drawable.location_icon)
               .maxZoomIconScale(0.7f)
               .build();
       locationComponent = mapboxMap.getLocationComponent();
-      locationComponent.activateLocationComponent(
-          context, style, buildLocationComponentOptions(style));
+      locationComponent.activateLocationComponent(context, style, locationComponentOptions);
       locationComponent.setLocationComponentEnabled(true);
       // locationComponent.setRenderMode(RenderMode.COMPASS); // remove or keep default?
       locationComponent.setLocationEngine(locationEngine);
@@ -328,7 +326,11 @@ final class MapboxMapController
   private LocationComponentOptions buildLocationComponentOptions(Style style) {
     final LocationComponentOptions.Builder optionsBuilder =
         LocationComponentOptions.builder(context);
-    optionsBuilder.trackingGesturesManagement(true);
+
+    optionsBuilder.trackingGesturesManagement(true)
+            .gpsDrawable(R.drawable.location_icon)
+            .maxZoomIconScale(0.7f)
+            .build();
 
     final String lastLayerId = getLastLayerOnStyle(style);
     if (lastLayerId != null) {

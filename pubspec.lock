@@ -7,7 +7,7 @@ packages:
       name: archive
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.1.2"
+    version: "3.3.1"
   characters:
     dependency: transitive
     description:
@@ -28,7 +28,7 @@ packages:
       name: crypto
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.0.1"
+    version: "3.0.2"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -45,7 +45,7 @@ packages:
       name: image
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.0.2"
+    version: "3.2.0"
   js:
     dependency: transitive
     description:
@@ -65,7 +65,7 @@ packages:
     description:
       path: mapbox_gl_platform_interface
       ref: elt
-      resolved-ref: f2a27e52af6f97c2a48e2dac9e1fcd104ccb512f
+      resolved-ref: "4ab7c0005c346a6693513add1b82048db6174f39"
       url: "https://github.com/fronniesw/flutter-mapbox-gl.git"
     source: git
     version: "0.16.0"
@@ -74,7 +74,7 @@ packages:
     description:
       path: mapbox_gl_web
       ref: elt
-      resolved-ref: f2a27e52af6f97c2a48e2dac9e1fcd104ccb512f
+      resolved-ref: "4ab7c0005c346a6693513add1b82048db6174f39"
       url: "https://github.com/fronniesw/flutter-mapbox-gl.git"
     source: git
     version: "0.16.0"
@@ -105,14 +105,14 @@ packages:
       name: path
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.8.0"
+    version: "1.8.2"
   petitparser:
     dependency: transitive
     description:
       name: petitparser
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.1.0"
+    version: "5.0.0"
   recase:
     dependency: "direct main"
     description:
@@ -131,7 +131,7 @@ packages:
       name: typed_data
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.3.0"
+    version: "1.3.1"
   vector_math:
     dependency: transitive
     description:
@@ -145,7 +145,7 @@ packages:
       name: xml
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "5.1.0"
+    version: "6.1.0"
 sdks:
-  dart: ">=2.17.0-0 <3.0.0"
+  dart: ">=2.17.0 <3.0.0"
   flutter: ">=2.0.0"
