@@ -82,10 +82,10 @@ class LayerPropertyConverter {
           properties.add(PropertyFactory.symbolZOrder(expression));
           break;
         case "icon-allow-overlap":
-          properties.add(PropertyFactory.iconAllowOverlap(expression));
+          properties.add(PropertyFactory.iconAllowOverlap(true));
           break;
         case "icon-ignore-placement":
-          properties.add(PropertyFactory.iconIgnorePlacement(expression));
+          properties.add(PropertyFactory.iconIgnorePlacement(true));
           break;
         case "icon-optional":
           properties.add(PropertyFactory.iconOptional(expression));
