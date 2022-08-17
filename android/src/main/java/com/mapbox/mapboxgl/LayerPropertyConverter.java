@@ -8,6 +8,7 @@ import static com.mapbox.mapboxgl.Convert.toMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mapbox.mapboxsdk.style.expressions.Expression;
+import com.mapbox.mapboxsdk.style.layers.Property;
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.PropertyValue;
 import java.util.LinkedList;
@@ -79,13 +80,13 @@ class LayerPropertyConverter {
           properties.add(PropertyFactory.symbolSortKey(expression));
           break;
         case "symbol-z-order":
-          properties.add(PropertyFactory.symbolZOrder(expression));
+          properties.add(PropertyFactory.symbolZOrder(Property.SYMBOL_Z_ORDER_VIEWPORT_Y));
           break;
         case "icon-allow-overlap":
           properties.add(PropertyFactory.iconAllowOverlap(true));
           break;
         case "icon-ignore-placement":
-          properties.add(PropertyFactory.iconIgnorePlacement(true));
+          properties.add(PropertyFactory.iconIgnorePlacement(false));
           break;
         case "icon-optional":
           properties.add(PropertyFactory.iconOptional(expression));

@@ -63,6 +63,8 @@ import com.mapbox.mapboxsdk.style.layers.FillLayer;
 import com.mapbox.mapboxsdk.style.layers.HillshadeLayer;
 import com.mapbox.mapboxsdk.style.layers.Layer;
 import com.mapbox.mapboxsdk.style.layers.LineLayer;
+import com.mapbox.mapboxsdk.style.layers.Property;
+import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.PropertyValue;
 import com.mapbox.mapboxsdk.style.layers.RasterLayer;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
@@ -410,6 +412,7 @@ final class MapboxMapController
       Expression filter) {
     SymbolLayer symbolLayer = new SymbolLayer(layerName, sourceName);
     symbolLayer.setProperties(properties);
+    symbolLayer.setProperties(PropertyFactory.symbolZOrder(Property.SYMBOL_Z_ORDER_VIEWPORT_Y));
     if (sourceLayer != null) {
       symbolLayer.setSourceLayer(sourceLayer);
     }
